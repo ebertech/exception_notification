@@ -42,10 +42,15 @@ class ExceptionNotification::Notifier < ActionMailer::Base
     source = self.class.exception_source(controller)
     content_type "text/plain"
 
-    subject    "#{email_prefix}#{source} (#{exception.class}) #{exception.message.inspect}"
+    subject    "#{email_prefix} #{exception.class}: #{exception.backtrace.first}"
 
     recipients exception_recipients
     from       sender_address
+    
+    headers({
+      "X-Exception-Location" => exception.backtrace.first,
+      "X-Exception-Class" => exception.class.name
+    })
 
     body       data.merge({ :controller => controller, :request => request,
                   :exception => exception, :exception_source => source, :host => (request.env["HTTP_X_FORWARDED_HOST"] || request.env["HTTP_HOST"]),
