@@ -48,7 +48,7 @@ class ExceptionNotification::Notifier < ActionMailer::Base
     from       sender_address
     
     headers({
-      "X-Exception-Location" => exception.backtrace.first,
+      "X-Exception-Location" => sanitize_backtrace(exception.backtrace).first,
       "X-Exception-Class" => exception.class.name
     })
 
