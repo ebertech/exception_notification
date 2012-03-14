@@ -48,7 +48,7 @@ class ExceptionNotification::Notifier < ActionMailer::Base
     from       sender_address
     
     headers({
-      "X-Exception-Location" => sanitize_backtrace(exception.backtrace).first,
+      "X-Exception-Location" => extract_exception_location(exception),
       "X-Exception-Class" => exception.class.name
     })
 
@@ -69,9 +69,25 @@ class ExceptionNotification::Notifier < ActionMailer::Base
 
 private
 
+  def extract_exception_location(exception)
+    if exception.respond_to?(:file_name) && exception.respond_to?(:line_number)
+      sanitize_backtrace(["#{exception.file_name}:#{exception.line_number}"]).first
+    else
+      fully_sanitize_backtrace(exception.backtrace).first  
+    end    
+  end
+
+  def fully_sanitize_backtrace(backtrace)
+    if defined?(Rails) && Rails.respond_to?(:backtrace_cleaner)
+      Rails.backtrace_cleaner.clean(backtrace)
+    else
+      sanitize_backtrace(backtrace)
+    end    
+  end
+
   def sanitize_backtrace(trace)
     re = Regexp.new(/^#{Regexp.escape(rails_root)}/)
-    trace.map { |line| Pathname.new(line.gsub(re, "[RAILS_ROOT]")).cleanpath.to_s }
+    trace.map { |line| Pathname.new(line.gsub(re, "[RAILS_ROOT]")).cleanpath.to_s }    
   end
 
   def rails_root
